@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "jsx": "react-native",
+    "checkJs": false,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "exclude": [
+    "node_modules",
+    "backend/node_modules",
+    "babel.config.js",
+    "metro.config.js"
+  ]
+}

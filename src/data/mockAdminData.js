@@ -1,0 +1,137 @@
+export const INITIAL_ADMIN_STATS = {
+  totalStudents: 1240,
+  verifiedStudents: 980,
+  pendingVerifications: 14,
+  activeListings: 186,
+  reportsCount: 5,
+  suspendedUsers: 3,
+};
+
+export const INITIAL_ADMIN_USERS = [
+  {
+    id: 'usr_admin_1',
+    name: 'Rahul Verma',
+    email: 'rahul.v@stanford.edu',
+    college: 'Stanford University',
+    course: 'Computer Science',
+    verificationStatus: 'Verified',
+    accountStatus: 'Active',
+    joinedDate: '2026-08-15',
+  },
+  {
+    id: 'usr_admin_2',
+    name: 'Priya Sharma',
+    email: 'priya.s@stanford.edu',
+    college: 'Stanford University',
+    course: 'Electrical Engineering',
+    verificationStatus: 'Verified',
+    accountStatus: 'Active',
+    joinedDate: '2026-08-20',
+  },
+  {
+    id: 'usr_admin_3',
+    name: 'Aarav Patel',
+    email: 'aarav.p@berkeley.edu',
+    college: 'UC Berkeley',
+    course: 'Business Administration',
+    verificationStatus: 'Pending',
+    accountStatus: 'Active',
+    joinedDate: '2026-09-01',
+  },
+  {
+    id: 'usr_admin_4',
+    name: 'Vikram Singh',
+    email: 'vikram.s@fake.com',
+    college: 'San Jose State University',
+    course: 'Mechanical Engg',
+    verificationStatus: 'Rejected',
+    accountStatus: 'Suspended',
+    joinedDate: '2026-09-05',
+  },
+  {
+    id: 'usr_admin_5',
+    name: 'Neha Kapoor',
+    email: 'neha.k@stanford.edu',
+    college: 'Stanford University',
+    course: 'Data Science',
+    verificationStatus: 'Pending',
+    accountStatus: 'Active',
+    joinedDate: '2026-09-10',
+  },
+];
+
+export const INITIAL_ADMIN_VERIFICATIONS = [
+  {
+    id: 'verif_1',
+    userId: 'usr_admin_3',
+    studentName: 'Aarav Patel',
+    college: 'UC Berkeley',
+    studentIdStatus: 'Student ID submitted',
+    universityEmailStatus: 'College ID submitted',
+    submittedDate: '2026-09-12',
+    status: 'Pending',
+  },
+  {
+    id: 'verif_2',
+    userId: 'usr_admin_5',
+    studentName: 'Neha Kapoor',
+    college: 'Stanford University',
+    studentIdStatus: 'Student ID submitted',
+    universityEmailStatus: 'College ID submitted',
+    submittedDate: '2026-09-14',
+    status: 'Pending',
+  },
+];
+
+export const INITIAL_ADMIN_LISTINGS = [
+  {
+    id: 'list_admin_1',
+    title: 'Spacious 2BHK near Stanford Campus',
+    ownerName: 'Rahul Verma',
+    area: 'Palo Alto',
+    rent: '$850 / month',
+    status: 'Approved',
+    submittedDate: '2026-09-01',
+  },
+  {
+    id: 'list_admin_2',
+    title: 'Cozy Private Room in 3BHK Apartment',
+    ownerName: 'Priya Sharma',
+    area: 'Downtown San Jose',
+    rent: '$700 / month',
+    status: 'Approved',
+    submittedDate: '2026-09-05',
+  },
+  {
+    id: 'list_admin_3',
+    title: 'Luxury Studio Flat near Berkeley',
+    ownerName: 'Aarav Patel',
+    area: 'Berkeley',
+    rent: '$1,200 / month',
+    status: 'Pending',
+    submittedDate: '2026-09-14',
+  },
+];
+
+export const INITIAL_ADMIN_REPORTS = [
+  {
+    id: 'rep_1',
+    type: 'User Report',
+    targetName: 'Vikram Singh',
+    reporterName: 'Priya Sharma',
+    reason: 'Suspicious account & unverified identity',
+    details: 'User asked for advance rent before showing property video call.',
+    status: 'Pending',
+    submittedDate: '2026-09-14',
+  },
+  {
+    id: 'rep_2',
+    type: 'Listing Report',
+    targetName: 'Listing #list_admin_3 (Studio Flat)',
+    reporterName: 'Anonymous Student',
+    reason: 'Incorrect pricing / potential scam',
+    details: 'Price listed is significantly lower than market value, missing real images.',
+    status: 'Pending',
+    submittedDate: '2026-09-15',
+  },
+];

@@ -1,0 +1,13 @@
+{
+  "javascript.validate.enable": true,
+  "typescript.validate.enable": true,
+  "javascript.suggestionActions.enabled": false,
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/backend/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/backend/node_modules": true
+  }
+}
