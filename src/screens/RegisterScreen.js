@@ -17,7 +17,6 @@ import {
   validateCourse,
   validateYearOfStudy,
 } from '../utils/validation';
-import { UNIVERSITIES } from '../data/mockData';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 const YEAR_OPTIONS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Postgraduate'];
@@ -94,10 +93,7 @@ export const RegisterScreen = ({ navigation }) => {
     }
   };
 
-  const selectUniversity = (uniName) => {
-    setUniversity(uniName);
-    if (errors.university) setErrors({ ...errors, university: null });
-  };
+
 
   const selectCourse = (courseName) => {
     setCourse(courseName);
@@ -232,31 +228,7 @@ export const RegisterScreen = ({ navigation }) => {
             error={errors.university}
           />
 
-          {/* Quick Select Campus Chips */}
-          <Text style={[styles.chipLabel, dynamicStyles.chipLabel]}>Quick Select Campus:</Text>
-          <View style={styles.chipRow}>
-            {UNIVERSITIES.slice(0, 4).map((uni) => (
-              <TouchableOpacity
-                key={uni}
-                style={[
-                  styles.chip,
-                  dynamicStyles.chip,
-                  university === uni && [styles.chipActive, dynamicStyles.chipActive],
-                ]}
-                onPress={() => selectUniversity(uni)}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    dynamicStyles.chipText,
-                    university === uni && [styles.chipTextActive, dynamicStyles.chipTextActive],
-                  ]}
-                >
-                  {uni}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+
 
           {/* 4. Course */}
           <Input
