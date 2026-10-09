@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
 import { Header } from '../components/Header';
@@ -9,11 +9,11 @@ import { VerifiedBadge } from '../components/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import { validateEmail, validatePassword } from '../utils/validation';
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOWS } from '../constants/theme';
+import { RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 export const LoginScreen = ({ navigation }) => {
   const { login, isLoading, error, setError } = useAuth();
-  const { colors, isDark, shadows } = useTheme();
+  const { colors, isDark } = useTheme();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,13 +39,13 @@ export const LoginScreen = ({ navigation }) => {
 
     setErrors({});
 
-    // Perform mock authentication via service
+    // Perform authentication via service
     const result = await login(email, password);
 
     if (result.success) {
       const isAdminAccount = result.user?.isAdmin || result.user?.role === 'admin';
       
-      setSuccessMessage(`Login successful! Welcome to FlatMate ${isAdminAccount ? 'Admin' : ''}.`);
+      setSuccessMessage(`Login successful! Welcome back.`);
       
       if (isAdminAccount) {
         navigation.reset({
@@ -59,22 +59,6 @@ export const LoginScreen = ({ navigation }) => {
         });
       }
     }
-  };
-
-  const fillDemoStudent = () => {
-    setEmail('student@flatmate.demo');
-    setPassword('demo123');
-    setErrors({});
-    if (error) setError(null);
-    setSuccessMessage(null);
-  };
-
-  const fillDemoAdmin = () => {
-    setEmail('admin@flatmate.demo');
-    setPassword('admin123');
-    setErrors({});
-    if (error) setError(null);
-    setSuccessMessage(null);
   };
 
   const dynamicStyles = {
@@ -101,20 +85,6 @@ export const LoginScreen = ({ navigation }) => {
     forgotPasswordText: {
       color: colors.primary,
     },
-    demoStudentBox: {
-      backgroundColor: colors.accentLight,
-      borderColor: isDark ? colors.border : 'rgba(124, 58, 237, 0.2)',
-    },
-    demoStudentText: {
-      color: colors.accent,
-    },
-    demoAdminBox: {
-      backgroundColor: colors.primaryLight,
-      borderColor: isDark ? colors.border : 'rgba(79, 70, 229, 0.2)',
-    },
-    demoAdminText: {
-      color: colors.primary,
-    },
     footerText: {
       color: colors.textSecondary,
     },
@@ -133,10 +103,10 @@ export const LoginScreen = ({ navigation }) => {
       <View style={styles.content}>
         {/* Header Section */}
         <View style={styles.titleSection}>
-          <VerifiedBadge label="Verified Student & Admin Access" style={{ marginBottom: SPACING.xs }} />
+          <VerifiedBadge label="Verified Student Access" style={{ marginBottom: SPACING.xs }} />
           <Text style={[styles.heading, dynamicStyles.heading]}>Welcome back to FlatMate</Text>
           <Text style={[styles.subheading, dynamicStyles.subheading]}>
-            Sign in with your student credentials or admin access code.
+            Sign in with your email address and password to continue.
           </Text>
         </View>
 
@@ -161,7 +131,7 @@ export const LoginScreen = ({ navigation }) => {
           {/* Email Input */}
           <Input
             label="Email Address"
-            placeholder="e.g. student@flatmate.demo"
+            placeholder="e.g. alex@stanford.edu"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -172,7 +142,6 @@ export const LoginScreen = ({ navigation }) => {
             autoCapitalize="none"
             leftIcon={<Ionicons name="mail-outline" size={20} color={colors.textSecondary} />}
             error={errors.email}
-            helperText="Student: student@flatmate.demo | Admin: admin@flatmate.demo"
           />
 
           {/* Password Input */}
@@ -188,7 +157,6 @@ export const LoginScreen = ({ navigation }) => {
             secureTextEntry={true}
             leftIcon={<Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />}
             error={errors.password}
-            helperText="Student pass: demo123 | Admin pass: admin123"
           />
 
           {/* Forgot Password Link */}
@@ -209,27 +177,6 @@ export const LoginScreen = ({ navigation }) => {
             disabled={isLoading}
             style={styles.submitBtn}
           />
-
-          {/* Quick Demo Fill Buttons */}
-          <View style={{ gap: SPACING.xs, marginTop: SPACING.xs }}>
-            <TouchableOpacity
-              style={[styles.demoBox, dynamicStyles.demoStudentBox, shadows.small]}
-              onPress={fillDemoStudent}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="flash-outline" size={18} color={colors.accent} />
-              <Text style={[styles.demoText, dynamicStyles.demoStudentText]}>Auto-fill Student (student@flatmate.demo)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.demoBox, dynamicStyles.demoAdminBox, shadows.small]}
-              onPress={fillDemoAdmin}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="key-outline" size={18} color={colors.primary} />
-              <Text style={[styles.demoText, dynamicStyles.demoAdminText]}>Auto-fill Admin (admin@flatmate.demo)</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Register Navigation Link */}
@@ -288,7 +235,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   formSection: {
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   forgotPasswordRow: {
     alignSelf: 'flex-end',
@@ -300,28 +247,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   submitBtn: {
-    marginBottom: SPACING.md,
-  },
-  demoBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.sm,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-  },
-  demoText: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: SPACING.xs,
-    textAlign: 'center',
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.md,
+    marginTop: SPACING.lg,
   },
   footerText: {
     fontSize: 14,
@@ -331,4 +264,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
 
