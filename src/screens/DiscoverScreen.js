@@ -244,14 +244,6 @@ export const DiscoverScreen = ({ navigation }) => {
         <Header
           title="Find Flatmate"
           showBack={false}
-          rightComponent={
-            <TouchableOpacity
-              onPress={() => setFilterModalVisible(true)}
-              style={styles.filterHeaderBtn}
-            >
-              <Ionicons name="options-outline" size={22} color={colors.primary} />
-            </TouchableOpacity>
-          }
         />
 
         {/* SEARCH & SORT TOOLBAR */}
@@ -532,9 +524,6 @@ export const DiscoverScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   screenWrapper: {
     flex: 1,
-  },
-  filterHeaderBtn: {
-    padding: SPACING.xs,
   },
   toolbar: {
     flexDirection: 'row',
