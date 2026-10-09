@@ -84,7 +84,7 @@ export const MOCK_RECENT_ROOMS = [
   {
     id: 'room_101',
     title: 'Spacious Furnished Private Room near DU North Campus',
-    image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80',
     location: 'GTB Nagar, New Delhi',
     rent: '₹9,500',
     period: ' / mo',
@@ -100,7 +100,7 @@ export const MOCK_RECENT_ROOMS = [
   {
     id: 'room_102',
     title: 'Modern 2 BHK Private Room in Koramangala 4th Block',
-    image: 'https://images.unsplash.com/photo-1540518614846-7ede433c4ef7?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=800&auto=format&fit=crop&q=80',
     location: 'Koramangala 4th Block, Bangalore',
     rent: '₹14,000',
     period: ' / mo',
@@ -116,7 +116,7 @@ export const MOCK_RECENT_ROOMS = [
   {
     id: 'room_103',
     title: 'Cozy Shared Room in Student Flat near Hauz Khas',
-    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=800&auto=format&fit=crop&q=80',
     location: 'Hauz Khas Village, New Delhi',
     rent: '₹6,500',
     period: ' / mo',
@@ -128,5 +128,21 @@ export const MOCK_RECENT_ROOMS = [
     distanceFromCampus: '0.2 mi to IIT Delhi Gate',
     availableFrom: '15th Oct 2026',
     amenities: ['Wi-Fi', 'Cook Available', 'Study Desks', 'RO Purifier'],
+  },
+  {
+    id: 'room_104',
+    title: 'Premium Student Hostel Single Room near Stanford',
+    image: 'https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=800&auto=format&fit=crop&q=80',
+    location: 'Palo Alto, CA',
+    rent: '₹18,500',
+    period: ' / mo',
+    roomType: 'Hostel Room',
+    flatType: 'Single Room',
+    bedrooms: 1,
+    bathrooms: 1,
+    isVerified: true,
+    distanceFromCampus: '0.4 mi to Stanford Quad',
+    availableFrom: 'Immediate',
+    amenities: ['Private Desk', 'High-speed Wi-Fi', 'Laundry Service', 'Mess Meal Plan'],
   },
 ];

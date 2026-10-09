@@ -24,23 +24,15 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import { listingService } from '../services/listingService';
 import { favoriteService } from '../services/favoriteService';
+import {
+  DEFAULT_LISTING_IMAGE,
+  STUDENT_ROOM_IMAGES,
+  getListingCoverImage,
+  ListingCardImage,
+} from '../utils/imageUtils';
 import { COLORS, SHADOWS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
-export const DEFAULT_LISTING_IMAGE = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=80';
-
-export const getListingCoverImage = (item) => {
-  if (!item) return DEFAULT_LISTING_IMAGE;
-  if (item.photos && Array.isArray(item.photos) && item.photos.length > 0 && typeof item.photos[0] === 'string' && item.photos[0].trim()) {
-    return item.photos[0];
-  }
-  if (item.image_url && typeof item.image_url === 'string' && item.image_url.trim()) {
-    return item.image_url;
-  }
-  if (item.image && typeof item.image === 'string' && item.image.trim()) {
-    return item.image;
-  }
-  return DEFAULT_LISTING_IMAGE;
-};
+export { DEFAULT_LISTING_IMAGE, STUDENT_ROOM_IMAGES, getListingCoverImage, ListingCardImage };
 
 const SORT_OPTIONS = [
   { label: 'Recommended', value: 'recommended', icon: 'sparkles' },
@@ -671,7 +663,7 @@ export const ListingsScreen = ({ navigation }) => {
                     onPress={() => navigation.navigate('ListingDetails', { listingId: item.id, listing: item, isSaved })}
                     activeOpacity={0.92}
                   >
-                    <Image source={{ uri: coverImg }} style={styles.cardImage} />
+                    <ListingCardImage sourceUri={coverImg} style={styles.cardImage} />
 
                     {/* Top Badges Bar inside image container */}
                     <View style={styles.imageTopOverlayBar}>

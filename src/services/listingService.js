@@ -1,4 +1,5 @@
 import api, { handleApiError } from './api';
+import { getListingCoverImage } from '../utils/imageUtils';
 
 /**
  * Normalizes backend listing object fields to be fully compatible with frontend UI models.
@@ -31,7 +32,7 @@ export const normalizeListing = (raw) => {
       ? 'Semi-Furnished'
       : 'Unfurnished';
 
-  const imgUrl = raw.image_url || raw.image || (raw.photos && raw.photos.length > 0 ? raw.photos[0] : 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80');
+  const imgUrl = getListingCoverImage(raw);
 
   return {
     ...raw,
