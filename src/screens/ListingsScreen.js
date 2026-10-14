@@ -12,6 +12,7 @@ import {
   TextInput,
   RefreshControl,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
@@ -1194,6 +1195,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: COLORS.textPrimary,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   filterBtn: {
     width: 42,
@@ -1564,6 +1572,13 @@ const styles = StyleSheet.create({
     height: 44,
     fontSize: 14,
     color: COLORS.textPrimary,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   multilineInput: {
     height: 75,

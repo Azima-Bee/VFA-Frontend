@@ -74,14 +74,33 @@ if (fs.existsSync(indexHtmlPath) && ioniconsFile) {
       }
     </style>`;
 
+  const inputResetStyle = `
+    <style id="vfa-web-input-focus-reset">
+      input, textarea, select, [contenteditable="true"] {
+        outline: none !important;
+        outline-style: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+      input:focus, textarea:focus, select:focus {
+        outline: none !important;
+        outline-style: none !important;
+      }
+      input:focus-visible, textarea:focus-visible {
+        outline: none !important;
+      }
+    </style>`;
+
   let modified = false;
   if (!html.includes('rel="preload"') || !html.includes(fontUrl)) {
-    html = html.replace('</head>', `  ${fontPreload}\n${fontFaceStyle}\n</head>`);
+    html = html.replace('</head>', `  ${fontPreload}\n${fontFaceStyle}\n${inputResetStyle}\n</head>`);
+    modified = true;
+  } else if (!html.includes('vfa-web-input-focus-reset')) {
+    html = html.replace('</head>', `${inputResetStyle}\n</head>`);
     modified = true;
   }
   if (modified) {
     fs.writeFileSync(indexHtmlPath, html, 'utf8');
-    console.log(`[fix-web-export] Injected Ionicons preload and @font-face into index.html (${ioniconsFile})`);
+    console.log(`[fix-web-export] Injected Ionicons preload, @font-face, and input outline reset into index.html (${ioniconsFile})`);
   }
 }
 

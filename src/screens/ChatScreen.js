@@ -590,6 +590,8 @@ export const ChatScreen = ({ route, navigation }) => {
               editable={!isBlocked && !requiresConnection}
               multiline
               textAlignVertical="center"
+              underlineColorAndroid="transparent"
+              autoCorrect={false}
             />
           </View>
 
@@ -983,6 +985,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     padding: 0,
     margin: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   sendBtn: {
     width: 42,

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { COLORS as FALLBACK_COLORS, RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
+import { RADIUS, SPACING } from '../constants/theme';
 
 export const Input = ({
   label,
@@ -21,23 +21,46 @@ export const Input = ({
 }) => {
   const { colors } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
-  const [isPasswordVisible, setIsPasswordVisible] = useState(!secureTextEntry);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const togglePasswordVisibility = () => {
-    setIsPasswordVisible(!isPasswordVisible);
+    setIsPasswordVisible((prev) => !prev);
   };
 
   return (
     <View style={[styles.container, style]}>
       {label && <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>}
-      
+
       <View
         style={[
           styles.inputContainer,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-          isFocused && { borderColor: colors.primary, backgroundColor: colors.surface },
-          error && { borderColor: colors.error, backgroundColor: colors.errorLight },
-          !editable && { backgroundColor: colors.surfaceAlt, borderColor: colors.border },
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+          isFocused && {
+            borderColor: colors.primary,
+            backgroundColor: colors.surface,
+            ...(Platform.OS === 'web'
+              ? {
+                  boxShadow: '0 0 0 3.5px rgba(79, 70, 229, 0.18)',
+                }
+              : {}),
+          },
+          error && {
+            borderColor: colors.error,
+            backgroundColor: colors.errorLight,
+            ...(Platform.OS === 'web'
+              ? {
+                  boxShadow: '0 0 0 3.5px rgba(239, 68, 68, 0.18)',
+                }
+              : {}),
+          },
+          !editable && {
+            backgroundColor: colors.surfaceAlt,
+            borderColor: colors.border,
+            opacity: 0.7,
+          },
         ]}
       >
         {leftIcon && <View style={styles.leftIconWrapper}>{leftIcon}</View>}
@@ -51,7 +74,9 @@ export const Input = ({
           secureTextEntry={secureTextEntry && !isPasswordVisible}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
+          autoCorrect={false}
           editable={editable}
+          underlineColorAndroid="transparent"
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
@@ -61,6 +86,9 @@ export const Input = ({
             style={styles.rightIconWrapper}
             onPress={togglePasswordVisibility}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}
+            accessibilityRole="button"
           >
             <Ionicons
               name={isPasswordVisible ? 'eye-off-outline' : 'eye-outline'}
@@ -99,6 +127,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     minHeight: 52,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+        }
+      : {}),
   },
   leftIconWrapper: {
     marginRight: SPACING.sm,
@@ -110,6 +144,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: SPACING.sm,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   errorRow: {
     flexDirection: 'row',

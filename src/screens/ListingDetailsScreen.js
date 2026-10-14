@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
@@ -1388,6 +1389,13 @@ const styles = StyleSheet.create({
     height: 44,
     fontSize: 14,
     color: COLORS.textPrimary,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   multilineInput: {
     height: 75,

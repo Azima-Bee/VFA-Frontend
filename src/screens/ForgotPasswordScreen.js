@@ -25,14 +25,15 @@ export const ForgotPasswordScreen = ({ navigation }) => {
     setSuccessMessage(null);
 
     // Validate email
-    const err = validateEmail(email);
+    const cleanEmail = email.trim();
+    const err = validateEmail(cleanEmail);
     if (err) {
       setEmailError(err);
       return;
     }
 
     // Call reset password service method
-    const result = await resetPassword(email);
+    const result = await resetPassword(cleanEmail);
 
     if (result.success) {
       const msg = 'Password reset link has been sent to your email.';
@@ -109,7 +110,7 @@ export const ForgotPasswordScreen = ({ navigation }) => {
         <View style={styles.formSection}>
           <Input
             label="Student Email Address"
-            placeholder="e.g. student@flatmate.demo"
+            placeholder="e.g. alex@stanford.edu"
             value={email}
             onChangeText={(text) => {
               setEmail(text);

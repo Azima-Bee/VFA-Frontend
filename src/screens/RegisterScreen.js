@@ -10,7 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
 import {
   validateEmail,
-  validatePassword,
+  validateRegistrationPassword,
   validateConfirmPassword,
   validateFullName,
   validateUniversity,
@@ -42,13 +42,19 @@ export const RegisterScreen = ({ navigation }) => {
     if (error) setError(null);
     setSuccessMessage(null);
 
+    const cleanEmail = email.trim();
+    const cleanName = fullName.trim();
+    const cleanUni = university.trim();
+    const cleanCourse = course.trim();
+    const cleanYear = yearOfStudy.trim();
+
     // Run field validations
-    const nameErr = validateFullName(fullName);
-    const emailErr = validateEmail(email);
-    const uniErr = validateUniversity(university);
-    const courseErr = validateCourse(course);
-    const yearErr = validateYearOfStudy(yearOfStudy);
-    const passErr = validatePassword(password);
+    const nameErr = validateFullName(cleanName);
+    const emailErr = validateEmail(cleanEmail);
+    const uniErr = validateUniversity(cleanUni);
+    const courseErr = validateCourse(cleanCourse);
+    const yearErr = validateYearOfStudy(cleanYear);
+    const passErr = validateRegistrationPassword(password);
     const confirmErr = validateConfirmPassword(password, confirmPassword);
 
     if (nameErr || emailErr || uniErr || courseErr || yearErr || passErr || confirmErr) {
@@ -66,13 +72,13 @@ export const RegisterScreen = ({ navigation }) => {
 
     setErrors({});
 
-    // Submit mock registration
+    // Submit registration
     const result = await register({
-      fullName,
-      email,
-      university,
-      course,
-      yearOfStudy,
+      fullName: cleanName,
+      email: cleanEmail,
+      university: cleanUni,
+      course: cleanCourse,
+      yearOfStudy: cleanYear,
       password,
     });
 
@@ -311,7 +317,7 @@ export const RegisterScreen = ({ navigation }) => {
           {/* 6. Password */}
           <Input
             label="Password"
-            placeholder="At least 6 characters"
+            placeholder="Min. 8 chars (uppercase, lowercase, number)"
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -320,6 +326,7 @@ export const RegisterScreen = ({ navigation }) => {
             secureTextEntry={true}
             leftIcon={<Ionicons name="lock-closed-outline" size={20} color={colors.textSecondary} />}
             error={errors.password}
+            helperText="Must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number"
           />
 
           {/* 7. Confirm Password */}

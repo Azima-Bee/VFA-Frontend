@@ -8,7 +8,7 @@ import { Button } from '../components/Button';
 import { VerifiedBadge } from '../components/Badge';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
-import { validateEmail, validatePassword } from '../utils/validation';
+import { validateEmail, validateLoginPassword } from '../utils/validation';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
 export const LoginScreen = ({ navigation }) => {
@@ -25,9 +25,11 @@ export const LoginScreen = ({ navigation }) => {
     if (error) setError(null);
     setSuccessMessage(null);
 
+    const cleanEmail = email.trim();
+
     // Perform validation
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
+    const emailError = validateEmail(cleanEmail);
+    const passwordError = validateLoginPassword(password);
 
     if (emailError || passwordError) {
       setErrors({
@@ -40,7 +42,7 @@ export const LoginScreen = ({ navigation }) => {
     setErrors({});
 
     // Perform authentication via service
-    const result = await login(email, password);
+    const result = await login(cleanEmail, password);
 
     if (result.success) {
       const isAdminAccount = result.user?.isAdmin || result.user?.role === 'admin';

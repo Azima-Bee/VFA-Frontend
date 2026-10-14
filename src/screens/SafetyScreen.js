@@ -8,6 +8,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
@@ -661,6 +662,13 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm + 2,
     fontSize: 14,
     color: COLORS.textPrimary,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   textArea: {
     height: 90,

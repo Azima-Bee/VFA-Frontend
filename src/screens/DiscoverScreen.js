@@ -256,6 +256,8 @@ export const DiscoverScreen = ({ navigation }) => {
               placeholderTextColor={colors.textMuted}
               value={searchCity}
               onChangeText={setSearchCity}
+              underlineColorAndroid="transparent"
+              autoCorrect={false}
             />
             {searchCity ? (
               <TouchableOpacity onPress={() => setSearchCity('')}>
@@ -488,6 +490,7 @@ export const DiscoverScreen = ({ navigation }) => {
                 keyboardType="number-pad"
                 value={maxBudget}
                 onChangeText={setMaxBudget}
+                underlineColorAndroid="transparent"
               />
             </View>
 
@@ -544,6 +547,13 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 13,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   filterBtn: {
     width: 42,
@@ -784,6 +794,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     height: 46,
     fontSize: 14,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   modalActionsRow: {
     flexDirection: 'row',

@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
@@ -16,6 +17,7 @@ import { Header } from '../components/Header';
 import { Button } from '../components/Button';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { validateRegistrationPassword, validateConfirmPassword } from '../utils/validation';
 import { COLORS as FALLBACK_COLORS, RADIUS, SPACING, SHADOWS } from '../constants/theme';
 
 export const SettingsScreen = ({ navigation }) => {
@@ -92,12 +94,14 @@ export const SettingsScreen = ({ navigation }) => {
 
   // Handle Password Change
   const handleChangePassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      Alert.alert('Invalid Password', 'New password must be at least 6 characters long.');
+    const passwordError = validateRegistrationPassword(newPassword);
+    if (passwordError) {
+      Alert.alert('Invalid Password', passwordError);
       return;
     }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Password Mismatch', 'New password and confirmation do not match.');
+    const confirmError = validateConfirmPassword(newPassword, confirmPassword);
+    if (confirmError) {
+      Alert.alert('Password Mismatch', confirmError);
       return;
     }
 
@@ -553,10 +557,11 @@ export const SettingsScreen = ({ navigation }) => {
             <TextInput
               style={[styles.modalInput, dynamicStyles.modalInput]}
               secureTextEntry={true}
-              placeholder="Enter at least 6 characters..."
+              placeholder="Min 8 chars, 1 uppercase, 1 lowercase, 1 number"
               placeholderTextColor={colors.textMuted}
               value={newPassword}
               onChangeText={setNewPassword}
+              underlineColorAndroid="transparent"
             />
 
             <Text style={[styles.modalLabel, dynamicStyles.modalLabel]}>Confirm New Password:</Text>
@@ -567,6 +572,7 @@ export const SettingsScreen = ({ navigation }) => {
               placeholderTextColor={colors.textMuted}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
+              underlineColorAndroid="transparent"
             />
 
             <Button
@@ -755,6 +761,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: 10,
     fontSize: 14,
+    ...(Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : {}),
   },
   policyBodyText: {
     fontSize: 14,
