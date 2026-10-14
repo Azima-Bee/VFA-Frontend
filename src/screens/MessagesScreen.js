@@ -17,6 +17,7 @@ import { VerifiedBadge } from '../components/Badge';
 import { BottomNavBar } from '../components/BottomNavBar';
 import { useAuth } from '../hooks/useAuth';
 import { messageService } from '../services/messageService';
+import { subscribeToConversationUpdate } from '../services/socketService';
 import { useTheme } from '../context/ThemeContext';
 import { RADIUS, SPACING, TYPOGRAPHY } from '../constants/theme';
 
@@ -28,31 +29,51 @@ export const MessagesScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  const loadConversations = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
-    setErrorMsg(null);
+  const loadConversations = useCallback(async (isRefresh = false, isSilent = false) => {
+    if (!isSilent) {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setErrorMsg(null);
+    }
 
     const res = await messageService.getConversations();
 
     if (res.success) {
       setConversations(res.conversations || []);
-    } else {
+    } else if (!isSilent) {
       setErrorMsg(res.error || 'Failed to load conversations.');
       setConversations([]);
     }
 
-    setLoading(false);
-    setRefreshing(false);
+    if (!isSilent) {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
-    loadConversations();
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadConversations(true);
+    loadConversations(false, false);
+
+    // Refresh on screen focus
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      loadConversations(true, true);
     });
-    return unsubscribe;
+
+    // Real-time Socket.IO conversation updates
+    const unsubscribeSocket = subscribeToConversationUpdate(() => {
+      loadConversations(true, true);
+    });
+
+    // Background poller (every 5 seconds)
+    const interval = setInterval(() => {
+      loadConversations(true, true);
+    }, 5000);
+
+    return () => {
+      unsubscribeFocus();
+      unsubscribeSocket();
+      clearInterval(interval);
+    };
   }, [loadConversations, navigation]);
 
   const visibleConversations = conversations.filter(

@@ -88,10 +88,58 @@ export const normalizeMessage = (msg, currentUserId) => {
     sender: isMe ? 'me' : 'other',
     text: msg.message || msg.text || '',
     isRead: !!(msg.is_read || msg.isRead),
+    status: msg.status || 'sent',
     time: formatMessageTime(msg.created_at || msg.createdAt || msg.time),
-    rawTime: msg.created_at || msg.createdAt || msg.rawTime,
+    rawTime: msg.created_at || msg.createdAt || msg.rawTime || new Date().toISOString(),
     raw: msg.raw || msg,
   };
+};
+
+/**
+ * Merge two message lists without duplicates, sorted chronologically
+ */
+export const mergeMessages = (prevList = [], incomingList = []) => {
+  const map = new Map();
+
+  // Load previous messages
+  for (const m of prevList) {
+    if (m && m.id) {
+      map.set(String(m.id), m);
+    }
+  }
+
+  // Merge incoming messages
+  for (const inc of incomingList) {
+    if (!inc || !inc.id) continue;
+    const incId = String(inc.id);
+
+    // If incoming message matches an optimistic temporary message (same sender and text), remove temp
+    for (const [key, val] of map.entries()) {
+      if (
+        key.startsWith('temp-') &&
+        val.sender === inc.sender &&
+        val.text === inc.text
+      ) {
+        map.delete(key);
+      }
+    }
+
+    map.set(incId, inc);
+  }
+
+  // Convert to array and sort chronologically
+  const result = Array.from(map.values());
+  result.sort((a, b) => {
+    const timeA = new Date(a.rawTime || 0).getTime() || 0;
+    const timeB = new Date(b.rawTime || 0).getTime() || 0;
+    if (timeA !== timeB) return timeA - timeB;
+    const numA = parseInt(a.id, 10);
+    const numB = parseInt(b.id, 10);
+    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  return result;
 };
 
 export const messageService = {

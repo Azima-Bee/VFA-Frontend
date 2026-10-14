@@ -1,5 +1,6 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect } from 'react';
+import { Platform, BackHandler } from 'react-native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { SplashScreen } from '../screens/SplashScreen';
@@ -34,11 +35,99 @@ import { useTheme } from '../context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 
+/**
+ * Deep linking & Web History Configuration (Bug 3 Fix)
+ * Enables HTML5 browser history synchronization on Expo Web
+ * so browser Back navigates previous in-app destinations instead of exiting.
+ */
+const linking = {
+  prefixes: [
+    'vfa://',
+    'https://vfa-flatmate.vercel.app',
+    'http://localhost:19006',
+    'http://localhost:8081',
+  ],
+  config: {
+    screens: {
+      Splash: 'splash',
+      Welcome: 'welcome',
+      Login: 'login',
+      Register: 'register',
+      ForgotPassword: 'forgot-password',
+      ProfileSetup: 'profile-setup',
+      Verification: 'verification',
+      Home: 'home',
+      Discover: 'discover',
+      StudentProfile: 'student/:id?',
+      Listings: 'listings',
+      ListingDetails: 'listing/:listingId?',
+      Messages: 'messages',
+      Connections: 'connections',
+      Chat: 'chat',
+      Profile: 'profile',
+      Map: 'map',
+      Favorites: 'favorites',
+      RentCalculator: 'rent-calculator',
+      Notifications: 'notifications',
+      Safety: 'safety',
+      Settings: 'settings',
+      AdminDashboard: 'admin',
+      AdminUsers: 'admin/users',
+      AdminVerification: 'admin/verification',
+      AdminListings: 'admin/listings',
+      AdminReports: 'admin/reports',
+    },
+  },
+};
+
 export const AppNavigator = () => {
   const { colors } = useTheme();
+  const navigationRef = useNavigationContainerRef();
+
+  /**
+   * Android Hardware Back Button Handler (Bug 3 Fix)
+   * Intercepts Android back press to return to previous in-app screen
+   * instead of exiting the app from every screen.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const onHardwareBackPress = () => {
+      if (!navigationRef.isReady()) return false;
+
+      // 1. If React Navigation stack has history, go back
+      if (navigationRef.canGoBack()) {
+        navigationRef.goBack();
+        return true; // Prevent default app exit
+      }
+
+      // 2. If stack cannot go back, check current screen name
+      const currentRoute = navigationRef.getCurrentRoute();
+      const currentName = currentRoute?.name;
+
+      // Root screens where exiting the app is intended when no history exists
+      const rootScreens = ['Home', 'Welcome', 'AdminDashboard', 'Splash'];
+
+      if (currentName && !rootScreens.includes(currentName)) {
+        // Return to main Home screen instead of abruptly exiting
+        navigationRef.navigate('Home');
+        return true;
+      }
+
+      // At root screen with no history -> allow Android default behavior (exit app)
+      return false;
+    };
+
+    const backSubscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      onHardwareBackPress
+    );
+
+    return () => backSubscription.remove();
+  }, [navigationRef]);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{
