@@ -448,6 +448,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 260,
     resizeMode: 'cover',
+    alignSelf: 'center',
   },
   cardHeaderContent: {
     padding: SPACING.md,

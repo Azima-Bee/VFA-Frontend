@@ -156,4 +156,15 @@ fs.writeFileSync(path.join(distDir, 'vercel.json'), JSON.stringify(vercelConfig,
 fs.writeFileSync(path.join(rootDir, 'vercel.json'), JSON.stringify(rootVercelConfig, null, 2), 'utf8');
 console.log('[fix-web-export] Generated dist/vercel.json and root vercel.json');
 
+// 5. Ensure dist/.vercel/project.json is preserved for vfa-flatmate
+const vercelDir = path.join(distDir, '.vercel');
+fs.mkdirSync(vercelDir, { recursive: true });
+const projectConfig = {
+  projectId: "prj_xg462IRqUw2SHpXJoMop6Y5hh6kE",
+  orgId: "team_k2H56hNnY64eR2cZTzBn21RA",
+  projectName: "vfa-flatmate"
+};
+fs.writeFileSync(path.join(vercelDir, 'project.json'), JSON.stringify(projectConfig), 'utf8');
+console.log('[fix-web-export] Preserved dist/.vercel/project.json for vfa-flatmate');
+
 console.log('[fix-web-export] Finished successfully! Ready for Vercel deployment.');

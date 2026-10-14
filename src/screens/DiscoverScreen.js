@@ -618,11 +618,18 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     position: 'relative',
+    width: '100%',
+    height: 220,
+    overflow: 'hidden',
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardImage: {
     width: '100%',
-    height: 220,
+    height: '100%',
     resizeMode: 'cover',
+    alignSelf: 'center',
   },
   compatBadgePill: {
     position: 'absolute',

@@ -529,6 +529,8 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     borderWidth: 2,
+    resizeMode: 'cover',
+    alignSelf: 'center',
   },
   avatarHeaderCircle: {
     width: 44,
@@ -673,11 +675,18 @@ const styles = StyleSheet.create({
   },
   flatmateImageWrapper: {
     position: 'relative',
+    width: '100%',
+    height: 140,
+    overflow: 'hidden',
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   flatmatePhoto: {
     width: '100%',
-    height: 140,
+    height: '100%',
     resizeMode: 'cover',
+    alignSelf: 'center',
   },
   matchBadgePill: {
     position: 'absolute',
@@ -753,6 +762,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 160,
     resizeMode: 'cover',
+    alignSelf: 'center',
   },
   roomCardBody: {
     padding: SPACING.md,

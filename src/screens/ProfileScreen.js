@@ -241,6 +241,8 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     marginRight: SPACING.md,
     borderWidth: 2,
+    resizeMode: 'cover',
+    alignSelf: 'center',
   },
   avatarCircle: {
     width: 64,
