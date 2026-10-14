@@ -6,17 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#4F46E5"
-    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.vfa.flatmate",
-      "softwareKeyboardLayoutMode": "adjustResize",
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4F46E5"
@@ -26,7 +21,20 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#4F46E5"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1f59aad0-ce61-49a5-ac95-223580218fde"
+      }
+    }
   }
 }
