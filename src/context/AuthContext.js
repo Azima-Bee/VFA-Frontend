@@ -391,7 +391,7 @@ export const AuthProvider = ({ children }) => {
 
   // Admin Methods with Real Backend Integration
   const toggleSuspendUser = async (userId) => {
-    const targetUser = adminUsers.find((u) => u.id === userId);
+    const targetUser = adminUsers.find((u) => String(u.id) === String(userId));
     const newStatus = targetUser?.accountStatus === 'Active' ? 'suspended' : 'active';
 
     try {
@@ -399,12 +399,18 @@ export const AuthProvider = ({ children }) => {
       if (res.success) {
         setAdminUsers((prev) =>
           prev.map((u) => {
-            if (u.id === userId) {
+            if (String(u.id) === String(userId)) {
               return { ...u, accountStatus: newStatus === 'active' ? 'Active' : 'Suspended' };
             }
             return u;
           })
         );
+        // Refresh users and metrics from backend
+        adminService.getUsers().then((uRes) => {
+          if (uRes.success && Array.isArray(uRes.users)) {
+            setAdminUsers(uRes.users);
+          }
+        });
         adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
         return { success: true, message: res.message };
       } else {
@@ -422,13 +428,19 @@ export const AuthProvider = ({ children }) => {
       const res = await adminService.updateVerificationStatus(verifId, 'verified');
       if (res.success) {
         setAdminVerifications((prev) =>
-          prev.map((v) => (v.id === verifId ? { ...v, status: 'Approved' } : v))
+          prev.map((v) => (String(v.id) === String(verifId) ? { ...v, status: 'Approved', rawStatus: 'verified' } : v))
         );
         setAdminStats((prev) => ({
           ...prev,
-          verifiedStudents: prev.verifiedStudents + 1,
-          pendingVerifications: Math.max(0, prev.pendingVerifications - 1),
+          verifiedStudents: (prev.verifiedStudents || 0) + 1,
+          pendingVerifications: Math.max(0, (prev.pendingVerifications || 0) - 1),
         }));
+        // Re-fetch live queue from backend to ensure consistent state
+        adminService.getVerifications().then((vRes) => {
+          if (vRes.success && Array.isArray(vRes.verifications)) {
+            setAdminVerifications(vRes.verifications);
+          }
+        });
         adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
         return { success: true, message: res.message };
       } else {
@@ -446,13 +458,19 @@ export const AuthProvider = ({ children }) => {
       const res = await adminService.updateVerificationStatus(verifId, 'rejected');
       if (res.success) {
         setAdminVerifications((prev) =>
-          prev.map((v) => (v.id === verifId ? { ...v, status: 'Rejected' } : v))
+          prev.map((v) => (String(v.id) === String(verifId) ? { ...v, status: 'Rejected', rawStatus: 'rejected' } : v))
         );
         setAdminStats((prev) => ({
           ...prev,
           rejectedVerifications: (prev.rejectedVerifications || 0) + 1,
-          pendingVerifications: Math.max(0, prev.pendingVerifications - 1),
+          pendingVerifications: Math.max(0, (prev.pendingVerifications || 0) - 1),
         }));
+        // Re-fetch live queue from backend
+        adminService.getVerifications().then((vRes) => {
+          if (vRes.success && Array.isArray(vRes.verifications)) {
+            setAdminVerifications(vRes.verifications);
+          }
+        });
         adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
         return { success: true, message: res.message };
       } else {

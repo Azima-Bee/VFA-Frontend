@@ -87,12 +87,24 @@ export const adminService = {
    */
   async updateVerificationStatus(verifId, status) {
     try {
-      const response = await api.patch(`/verification/${verifId}/status`, {
-        status: status.toLowerCase() === 'approved' ? 'verified' : status.toLowerCase(),
-      });
+      const cleanStatus = status.toLowerCase() === 'approved' ? 'verified' : status.toLowerCase();
+      let response;
+      try {
+        response = await api.patch(`/verification/${verifId}/status`, {
+          status: cleanStatus,
+        });
+      } catch (err) {
+        if (err.response?.status === 404) {
+          response = await api.patch(`/admin/verifications/${verifId}/status`, {
+            status: cleanStatus,
+          });
+        } else {
+          throw err;
+        }
+      }
       return {
         success: true,
-        message: response.data?.message,
+        message: response.data?.message || 'Verification updated successfully',
         verification: response.data?.verification,
       };
     } catch (error) {
