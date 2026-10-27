@@ -2,6 +2,33 @@ import api, { handleApiError } from './api';
 
 export const reportService = {
   /**
+   * Submit general report (User, Listing, or Chat)
+   * POST /api/reports
+   */
+  async submitReport({ reportedUserId, listingId, targetName, reason, description = '' }) {
+    try {
+      const response = await api.post('/reports', {
+        reported_user_id: reportedUserId || null,
+        listing_id: listingId || null,
+        target_name: targetName || '',
+        reason: reason || 'Inappropriate content',
+        description: description || '',
+      });
+      return {
+        success: true,
+        report: response.data.report,
+        message: response.data.message || 'Report submitted successfully',
+      };
+    } catch (error) {
+      const errorMessage = handleApiError(error);
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  },
+
+  /**
    * Submit report against a user
    * POST /api/reports
    */

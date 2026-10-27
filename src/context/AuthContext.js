@@ -546,6 +546,7 @@ export const AuthProvider = ({ children }) => {
       const payload = {
         reported_user_id: reportData.reportedUserId || reportData.reported_user_id || null,
         listing_id: reportData.listingId || reportData.listing_id || null,
+        target_name: reportData.targetName || reportData.target_name || '',
         reason: reportData.reason || 'Inappropriate content',
         description: reportData.details || reportData.description || '',
       };
@@ -553,7 +554,7 @@ export const AuthProvider = ({ children }) => {
       if (res.data?.success) {
         adminService.getReports().then((r) => r.success && setAdminReports(r.reports));
         adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
-        return { success: true, message: res.data.message };
+        return { success: true, message: res.data.message, report: res.data.report };
       }
       return { success: false, error: res.data?.message || 'Failed to submit report' };
     } catch (err) {

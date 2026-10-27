@@ -185,7 +185,13 @@ export const adminService = {
       const reports = (response.data?.reports || []).map((r) => ({
         id: String(r.id),
         type: r.reason || 'Safety Report',
-        targetName: r.reported_user_name || r.listing_title || (r.reported_user_id ? `User #${r.reported_user_id}` : `Listing #${r.listing_id}`),
+        targetName:
+          r.reported_user_name ||
+          r.listing_title ||
+          (r.reported_user_id ? `User #${r.reported_user_id}` : null) ||
+          (r.listing_id ? `Listing #${r.listing_id}` : null) ||
+          (r.description && r.description.match(/\[Target: ([^\]]+)\]/)?.[1]) ||
+          'Safety Incident',
         reporterName: r.reporter_name || `Reporter #${r.reporter_id}`,
         reason: r.reason,
         details: r.description,

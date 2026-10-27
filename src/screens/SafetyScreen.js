@@ -7,8 +7,8 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Container } from '../components/Container';
@@ -17,13 +17,49 @@ import { Button } from '../components/Button';
 import { SectionCard } from '../components/SectionCard';
 import { AuthContext } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { showMessageAlert } from '../utils/alert';
+import { reportService } from '../services/reportService';
+import { connectionService } from '../services/connectionService';
+import { listingService } from '../services/listingService';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOWS } from '../constants/theme';
 
+const REASONS_MAP = {
+  User: [
+    'Suspicious account',
+    'Fake student identity',
+    'Harassment',
+    'Scam or fraud attempt',
+    'Inappropriate content',
+    'Other',
+  ],
+  Listing: [
+    'Fake listing',
+    'Inaccurate price or details',
+    'Scam / deposit fraud',
+    'Property unavailable',
+    'Inappropriate images',
+    'Other',
+  ],
+  Chat: [
+    'Harassment or abusive chat',
+    'Offensive language',
+    'Scam / phishing attempt',
+    'Unsolicited spam',
+    'Inappropriate requests',
+    'Other',
+  ],
+};
+
 export const SafetyScreen = ({ route, navigation }) => {
-  const { blockedUsers, unblockUser, submitReport } = useContext(AuthContext);
+  const { user, blockedUsers, unblockUser, submitReport } = useContext(AuthContext);
   const { colors, isDark, shadows } = useTheme();
 
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [historyModalVisible, setHistoryModalVisible] = useState(false);
+  const [myReports, setMyReports] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [reportType, setReportType] = useState('User');
   const [targetName, setTargetName] = useState('');
   const [reportedUserId, setReportedUserId] = useState(null);
@@ -31,14 +67,46 @@ export const SafetyScreen = ({ route, navigation }) => {
   const [reportReason, setReportReason] = useState('Suspicious account');
   const [reportDetails, setReportDetails] = useState('');
 
-  const reportReasons = [
-    'Suspicious account',
-    'Fake listing',
-    'Harassment',
-    'Scam/fraud',
-    'Inappropriate content',
-    'Other',
-  ];
+  const [quickUsers, setQuickUsers] = useState([]);
+  const [quickListings, setQuickListings] = useState([]);
+
+  // Fetch quick select targets (connections and listings) on mount
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const [connRes, listRes] = await Promise.all([
+          connectionService.getConnections().catch(() => ({ success: false })),
+          listingService.getListings().catch(() => ({ success: false })),
+        ]);
+        if (isMounted) {
+          if (connRes?.success && Array.isArray(connRes.connections)) {
+            const list = connRes.connections
+              .map((c) => ({
+                id: c.student?.id || c.senderId || c.receiverId,
+                name: c.student?.name || 'Student',
+              }))
+              .filter((u) => u.id && u.name);
+            setQuickUsers(list.slice(0, 6));
+          }
+          if (listRes?.success && Array.isArray(listRes.listings)) {
+            const list = listRes.listings
+              .map((l) => ({
+                id: l.id,
+                title: l.title || `Listing #${l.id}`,
+              }))
+              .filter((l) => l.id && l.title);
+            setQuickListings(list.slice(0, 6));
+          }
+        }
+      } catch (err) {
+        // non-blocking
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Sync route params when opened with pre-filled target
   useEffect(() => {
@@ -48,7 +116,11 @@ export const SafetyScreen = ({ route, navigation }) => {
       const lId = route.params.listingId || route.params.listing?.id || null;
       const tName = route.params.targetName || route.params.student?.name || route.params.listing?.title || '';
 
-      if (type) setReportType(type);
+      if (type) {
+        setReportType(type);
+        const reasons = REASONS_MAP[type] || REASONS_MAP.User;
+        setReportReason(reasons[0]);
+      }
       if (uId) setReportedUserId(uId);
       if (lId) setListingId(lId);
       if (tName) setTargetName(tName);
@@ -59,17 +131,40 @@ export const SafetyScreen = ({ route, navigation }) => {
     }
   }, [route?.params]);
 
+  const fetchMyReportsList = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await reportService.getMyReports();
+      if (res?.success && Array.isArray(res.reports)) {
+        setMyReports(res.reports);
+      }
+    } catch (e) {
+      console.warn('Fetch my reports error:', e);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const handleOpenReport = (type = 'User') => {
     setReportType(type);
     setTargetName('');
     setReportedUserId(null);
     setListingId(null);
-    setReportReason('Suspicious account');
+    const reasons = REASONS_MAP[type] || REASONS_MAP.User;
+    setReportReason(reasons[0]);
     setReportDetails('');
     setReportModalVisible(true);
   };
 
   const handleSubmitReport = async () => {
+    if (!targetName.trim()) {
+      showMessageAlert(
+        'Target Required',
+        `Please enter the name, title, or ID of the ${reportType.toLowerCase()} you wish to report.`
+      );
+      return;
+    }
+
     const isListing = reportType === 'Listing';
     let targetReportedUserId = !isListing ? reportedUserId : null;
     let targetListingId = isListing ? listingId : null;
@@ -85,36 +180,45 @@ export const SafetyScreen = ({ route, navigation }) => {
       }
     }
 
-    if (!targetReportedUserId && !targetListingId) {
-      Alert.alert(
-        'Target ID Required',
-        isListing
-          ? 'Please report directly from the listing details screen, or enter a valid numeric listing ID.'
-          : 'Please report directly from the student’s profile or chat, or enter a valid numeric user ID.'
+    setIsSubmitting(true);
+    try {
+      const res = await submitReport({
+        type: `${reportType} Report`,
+        reportedUserId: targetReportedUserId,
+        listingId: targetListingId,
+        targetName: targetName.trim(),
+        reason: reportReason,
+        details: reportDetails.trim()
+          ? (targetName.trim() ? `Target: ${targetName.trim()}\n${reportDetails.trim()}` : reportDetails.trim())
+          : (targetName.trim() ? `Target: ${targetName.trim()}` : ''),
+      });
+
+      if (res?.success) {
+        setReportModalVisible(false);
+        setTargetName('');
+        setReportDetails('');
+        showMessageAlert(
+          'Report Submitted',
+          'Report submitted successfully. Our safety team will review it within 24 hours.'
+        );
+        fetchMyReportsList();
+      } else {
+        showMessageAlert(
+          'Submission Error',
+          res?.error || 'Failed to submit report. Please try again.'
+        );
+      }
+    } catch (err) {
+      showMessageAlert(
+        'Submission Error',
+        err.message || 'Failed to submit report. Please try again.'
       );
-      return;
-    }
-
-    const res = await submitReport({
-      type: `${reportType} Report`,
-      reportedUserId: targetReportedUserId,
-      listingId: targetListingId,
-      targetName: targetName.trim(),
-      reason: reportReason,
-      details: reportDetails.trim()
-        ? (targetName.trim() ? `Target: ${targetName.trim()}\n${reportDetails.trim()}` : reportDetails.trim())
-        : (targetName.trim() ? `Target: ${targetName.trim()}` : ''),
-    });
-
-    if (res?.success) {
-      setReportModalVisible(false);
-      Alert.alert('Report Submitted', 'Report submitted successfully. Our safety team will review it within 24 hours.', [
-        { text: 'OK' },
-      ]);
-    } else {
-      Alert.alert('Submission Error', res?.error || 'Failed to submit report. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const currentReasons = REASONS_MAP[reportType] || REASONS_MAP.User;
 
   const dynamicStyles = {
     wrapper: {
@@ -213,6 +317,26 @@ export const SafetyScreen = ({ route, navigation }) => {
     },
     selectedReasonText: {
       color: colors.textWhite,
+    },
+    quickChip: {
+      backgroundColor: colors.surfaceAlt,
+      borderColor: colors.border,
+    },
+    quickChipText: {
+      color: colors.textSecondary,
+    },
+    historyCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+    },
+    historyTarget: {
+      color: colors.textPrimary,
+    },
+    historyReason: {
+      color: colors.textSecondary,
+    },
+    historyDate: {
+      color: colors.textMuted,
     },
   };
 
@@ -316,13 +440,14 @@ export const SafetyScreen = ({ route, navigation }) => {
             subtitle="Take Action"
           >
             <Text style={[styles.sectionSubText, dynamicStyles.sectionSubText]}>
-              Encountered suspicious behavior, fake listings, or harassment? Report it immediately.
+              Encountered suspicious behavior, fake listings, or harassment? Report it immediately to our moderation team.
             </Text>
 
             <View style={styles.reportButtonsRow}>
               <TouchableOpacity
                 style={[styles.reportTypeBtn, dynamicStyles.reportUserBtn]}
                 onPress={() => handleOpenReport('User')}
+                activeOpacity={0.8}
               >
                 <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
                 <Text style={[styles.reportTypeLabel, { color: colors.primary }]}>Report User</Text>
@@ -331,6 +456,7 @@ export const SafetyScreen = ({ route, navigation }) => {
               <TouchableOpacity
                 style={[styles.reportTypeBtn, dynamicStyles.reportListingBtn]}
                 onPress={() => handleOpenReport('Listing')}
+                activeOpacity={0.8}
               >
                 <Ionicons name="home-outline" size={22} color={colors.warning} />
                 <Text style={[styles.reportTypeLabel, { color: colors.warning }]}>Report Listing</Text>
@@ -339,10 +465,40 @@ export const SafetyScreen = ({ route, navigation }) => {
               <TouchableOpacity
                 style={[styles.reportTypeBtn, dynamicStyles.reportChatBtn]}
                 onPress={() => handleOpenReport('Chat')}
+                activeOpacity={0.8}
               >
                 <Ionicons name="chatbubbles-outline" size={22} color={colors.accent} />
                 <Text style={[styles.reportTypeLabel, { color: colors.accent }]}>Report Chat</Text>
               </TouchableOpacity>
+            </View>
+
+            <View style={styles.reportAuxRow}>
+              <TouchableOpacity
+                style={[styles.historyActionBtn, { borderColor: colors.border, backgroundColor: colors.surfaceAlt }]}
+                onPress={() => {
+                  fetchMyReportsList();
+                  setHistoryModalVisible(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="time-outline" size={16} color={colors.primary} />
+                <Text style={[styles.historyActionText, { color: colors.primary }]}>
+                  View My Submitted Reports
+                </Text>
+              </TouchableOpacity>
+
+              {user?.role === 'admin' && (
+                <TouchableOpacity
+                  style={[styles.historyActionBtn, { borderColor: colors.primary, backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : colors.primaryLight }]}
+                  onPress={() => navigation.navigate('AdminReports')}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="shield-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.historyActionText, { color: colors.primary, fontWeight: '700' }]}>
+                    Admin Reports Queue
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </SectionCard>
 
@@ -365,7 +521,7 @@ export const SafetyScreen = ({ route, navigation }) => {
                     style={[styles.unblockBtn, dynamicStyles.unblockBtn]}
                     onPress={() => {
                       unblockUser(item.id);
-                      Alert.alert('User Unblocked', `${item.name} has been unblocked.`);
+                      showMessageAlert('User Unblocked', `${item.name} has been unblocked.`);
                     }}
                   >
                     <Text style={[styles.unblockBtnText, dynamicStyles.unblockBtnText]}>Unblock</Text>
@@ -397,27 +553,122 @@ export const SafetyScreen = ({ route, navigation }) => {
         </View>
       </Container>
 
-      {/* REPORT MODAL */}
+      {/* REPORT SUBMISSION MODAL */}
       <Modal
         visible={reportModalVisible}
         transparent={true}
         animationType="slide"
         onRequestClose={() => setReportModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, dynamicStyles.modalContent]}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setReportModalVisible(false)}
+        >
+          <View
+            style={[styles.modalContent, dynamicStyles.modalContent]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={[styles.modalHeader, dynamicStyles.modalHeader]}>
-              <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>Report {reportType}</Text>
-              <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+              <View style={styles.modalTitleRow}>
+                <Ionicons
+                  name={reportType === 'Listing' ? 'home' : reportType === 'Chat' ? 'chatbubbles' : 'person'}
+                  size={20}
+                  color={colors.primary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>Report {reportType}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setReportModalVisible(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
                 <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.inputLabel, dynamicStyles.inputLabel]}>Name or Identifier of {reportType}:</Text>
+              {/* Quick Select Chips */}
+              {(reportType === 'User' || reportType === 'Chat') && quickUsers.length > 0 && (
+                <View style={styles.quickSection}>
+                  <Text style={[styles.quickSectionLabel, { color: colors.textMuted }]}>
+                    Quick select from recent contacts:
+                  </Text>
+                  <View style={styles.quickChipsRow}>
+                    {quickUsers.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.quickChip,
+                          dynamicStyles.quickChip,
+                          targetName === item.name && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+                        ]}
+                        onPress={() => {
+                          setTargetName(item.name);
+                          setReportedUserId(item.id);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.quickChipText,
+                            dynamicStyles.quickChipText,
+                            targetName === item.name && { color: colors.primary, fontWeight: '700' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {reportType === 'Listing' && quickListings.length > 0 && (
+                <View style={styles.quickSection}>
+                  <Text style={[styles.quickSectionLabel, { color: colors.textMuted }]}>
+                    Quick select from listings:
+                  </Text>
+                  <View style={styles.quickChipsRow}>
+                    {quickListings.map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.quickChip,
+                          dynamicStyles.quickChip,
+                          targetName === item.title && { borderColor: colors.warning, backgroundColor: '#FFFBEB' },
+                        ]}
+                        onPress={() => {
+                          setTargetName(item.title);
+                          setListingId(item.id);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.quickChipText,
+                            dynamicStyles.quickChipText,
+                            targetName === item.title && { color: colors.warning, fontWeight: '700' },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.title}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <Text style={[styles.inputLabel, dynamicStyles.inputLabel]}>
+                {reportType === 'Listing' ? 'Listing Title or Listing ID *' : `${reportType} Name, Email, or ID *`}
+              </Text>
               <TextInput
                 style={[styles.textInput, dynamicStyles.textInput]}
-                placeholder={`Enter ${reportType.toLowerCase()} name or ID...`}
+                placeholder={
+                  reportType === 'Listing'
+                    ? 'Enter property title or listing ID...'
+                    : `Enter ${reportType.toLowerCase()} name, email or ID...`
+                }
                 value={targetName}
                 onChangeText={setTargetName}
                 placeholderTextColor={colors.textMuted}
@@ -425,7 +676,7 @@ export const SafetyScreen = ({ route, navigation }) => {
 
               <Text style={[styles.inputLabel, dynamicStyles.inputLabel]}>Reason for Report:</Text>
               <View style={styles.reasonsList}>
-                {reportReasons.map((reason) => (
+                {currentReasons.map((reason) => (
                   <TouchableOpacity
                     key={reason}
                     style={[
@@ -451,7 +702,7 @@ export const SafetyScreen = ({ route, navigation }) => {
               <Text style={[styles.inputLabel, dynamicStyles.inputLabel]}>Additional Details (Optional):</Text>
               <TextInput
                 style={[styles.textInput, dynamicStyles.textInput, styles.textArea]}
-                placeholder="Describe what happened or why you are reporting..."
+                placeholder="Describe what happened or why you are submitting this report..."
                 value={reportDetails}
                 onChangeText={setReportDetails}
                 multiline={true}
@@ -460,15 +711,137 @@ export const SafetyScreen = ({ route, navigation }) => {
               />
 
               <Button
-                title="Submit Report"
+                title={isSubmitting ? 'Submitting Report...' : 'Submit Report'}
                 variant="gradient"
                 size="large"
                 onPress={handleSubmitReport}
-                style={{ marginTop: SPACING.md }}
+                disabled={isSubmitting}
+                icon={
+                  isSubmitting ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 6 }} />
+                  ) : (
+                    <Ionicons name="paper-plane-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  )
+                }
+                style={{ marginTop: SPACING.md, marginBottom: SPACING.sm }}
               />
             </ScrollView>
           </View>
-        </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* MY SUBMITTED REPORTS HISTORY MODAL */}
+      <Modal
+        visible={historyModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setHistoryModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setHistoryModalVisible(false)}
+        >
+          <View
+            style={[styles.modalContent, dynamicStyles.modalContent]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={[styles.modalHeader, dynamicStyles.modalHeader]}>
+              <View style={styles.modalTitleRow}>
+                <Ionicons name="list" size={20} color={colors.primary} style={{ marginRight: 6 }} />
+                <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>My Submitted Reports</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <TouchableOpacity onPress={fetchMyReportsList} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="refresh" size={20} color={colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setHistoryModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close" size={24} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 420 }}>
+              {loadingHistory ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading your reports...</Text>
+                </View>
+              ) : myReports.length === 0 ? (
+                <View style={styles.emptyHistoryBox}>
+                  <Ionicons name="shield-checkmark-outline" size={44} color={colors.textMuted} />
+                  <Text style={[styles.emptyHistoryTitle, { color: colors.textPrimary }]}>No Reports Submitted</Text>
+                  <Text style={[styles.emptyHistorySub, { color: colors.textSecondary }]}>
+                    You have not submitted any safety reports yet. If you encounter any issue, use the buttons above.
+                  </Text>
+                </View>
+              ) : (
+                myReports.map((item) => {
+                  const isResolved = item.status === 'resolved';
+                  const isReviewed = item.status === 'reviewed';
+                  const targetLabel =
+                    item.reported_user_name ||
+                    item.listing_title ||
+                    (item.reported_user_id ? `User #${item.reported_user_id}` : null) ||
+                    (item.listing_id ? `Listing #${item.listing_id}` : null) ||
+                    (item.description && item.description.match(/\[Target: ([^\]]+)\]/)?.[1]) ||
+                    'General Report';
+
+                  return (
+                    <View
+                      key={item.id}
+                      style={[styles.historyCard, dynamicStyles.historyCard, shadows.small]}
+                    >
+                      <View style={styles.historyHeaderRow}>
+                        <Text style={[styles.historyTarget, dynamicStyles.historyTarget]} numberOfLines={1}>
+                          {targetLabel}
+                        </Text>
+                        <View
+                          style={[
+                            styles.historyStatusBadge,
+                            {
+                              backgroundColor: isResolved
+                                ? (isDark ? 'rgba(16, 185, 129, 0.2)' : '#ECFDF5')
+                                : isReviewed
+                                  ? (isDark ? 'rgba(99, 102, 241, 0.2)' : colors.primaryLight)
+                                  : (isDark ? 'rgba(245, 158, 11, 0.2)' : '#FFFBEB'),
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.historyStatusText,
+                              {
+                                color: isResolved
+                                  ? colors.verified
+                                  : isReviewed
+                                    ? colors.primary
+                                    : colors.warning,
+                              },
+                            ]}
+                          >
+                            {item.status || 'pending'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.historyReason, dynamicStyles.historyReason]}>
+                        Reason: {item.reason}
+                      </Text>
+                      {item.description ? (
+                        <Text style={[styles.historyDesc, { color: colors.textMuted }]} numberOfLines={2}>
+                          {item.description}
+                        </Text>
+                      ) : null}
+                      <Text style={[styles.historyDate, dynamicStyles.historyDate]}>
+                        Submitted: {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'Recently'}
+                      </Text>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -564,11 +937,30 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.xs,
     borderRadius: RADIUS.md,
+    borderWidth: 1,
   },
   reportTypeLabel: {
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
+  },
+  reportAuxRow: {
+    marginTop: SPACING.sm + 2,
+    gap: SPACING.xs,
+  },
+  historyActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    gap: 6,
+  },
+  historyActionText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   emptyBlockedText: {
     fontSize: 13,
@@ -622,15 +1014,20 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
+    alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
+    padding: Platform.OS === 'web' ? SPACING.lg : 0,
   },
   modalContent: {
     backgroundColor: COLORS.surface,
     borderTopLeftRadius: RADIUS.xl,
     borderTopRightRadius: RADIUS.xl,
+    borderRadius: Platform.OS === 'web' ? RADIUS.xl : undefined,
     padding: SPACING.lg,
-    maxHeight: '85%',
+    maxHeight: '90%',
+    width: Platform.OS === 'web' ? '100%' : undefined,
+    maxWidth: Platform.OS === 'web' ? 520 : undefined,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -641,10 +1038,38 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     paddingBottom: SPACING.sm,
   },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: '800',
     color: COLORS.textPrimary,
+  },
+  quickSection: {
+    marginBottom: SPACING.xs,
+  },
+  quickSectionLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  quickChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: SPACING.xs,
+  },
+  quickChip: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+  },
+  quickChipText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   inputLabel: {
     fontSize: 13,
@@ -700,5 +1125,72 @@ const styles = StyleSheet.create({
   selectedReasonText: {
     color: COLORS.textWhite,
     fontWeight: '700',
+  },
+  loadingBox: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 13,
+    marginTop: SPACING.sm,
+  },
+  emptyHistoryBox: {
+    paddingVertical: SPACING.xl,
+    paddingHorizontal: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHistoryTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginTop: SPACING.sm,
+    marginBottom: 4,
+  },
+  emptyHistorySub: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  historyCard: {
+    borderWidth: 1,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  historyHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  historyTarget: {
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: SPACING.xs,
+  },
+  historyStatusBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: RADIUS.full,
+  },
+  historyStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  historyReason: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  historyDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 4,
+  },
+  historyDate: {
+    fontSize: 11,
+    marginTop: 2,
   },
 });
