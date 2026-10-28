@@ -525,19 +525,56 @@ export const AuthProvider = ({ children }) => {
   };
 
   const resolveReport = async (reportId) => {
-    setAdminReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: 'Resolved' } : r))
-    );
-    setAdminStats((prev) => ({
-      ...prev,
-      reportsCount: Math.max(0, prev.reportsCount - 1),
-    }));
-
     try {
-      await adminService.updateReportStatus(reportId, 'resolved');
-      adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
+      const res = await adminService.updateReportStatus(reportId, 'resolved');
+      if (res && res.success) {
+        setAdminReports((prev) =>
+          prev.map((r) =>
+            String(r.id) === String(reportId) ? { ...r, status: 'Resolved', rawStatus: 'resolved' } : r
+          )
+        );
+        setAdminStats((prev) => ({
+          ...prev,
+          reportsCount: Math.max(0, (prev.reportsCount || 1) - 1),
+        }));
+        adminService.getReports().then((r) => r.success && Array.isArray(r.reports) && setAdminReports(r.reports));
+        adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
+        return { success: true, message: res.message || 'Report resolved successfully' };
+      } else {
+        return { success: false, error: res?.error || 'Failed to update report status' };
+      }
     } catch (err) {
       console.warn('Resolve report error:', err);
+      return { success: false, error: err.message || 'Failed to resolve report' };
+    }
+  };
+
+  const updateReportStatus = async (reportId, status) => {
+    try {
+      const res = await adminService.updateReportStatus(reportId, status);
+      if (res && res.success) {
+        const displayStatus =
+          status === 'resolved'
+            ? 'Resolved'
+            : status === 'reviewed'
+              ? 'Reviewed'
+              : status === 'rejected'
+                ? 'Rejected'
+                : 'Pending';
+        setAdminReports((prev) =>
+          prev.map((r) =>
+            String(r.id) === String(reportId) ? { ...r, status: displayStatus, rawStatus: status } : r
+          )
+        );
+        adminService.getReports().then((r) => r.success && Array.isArray(r.reports) && setAdminReports(r.reports));
+        adminService.getStats().then((s) => s.success && setAdminStats(s.stats));
+        return { success: true, message: res.message || `Report status updated to ${displayStatus}` };
+      } else {
+        return { success: false, error: res?.error || 'Failed to update report status' };
+      }
+    } catch (err) {
+      console.warn('Update report status error:', err);
+      return { success: false, error: err.message || 'Failed to update report status' };
     }
   };
 
@@ -621,6 +658,7 @@ export const AuthProvider = ({ children }) => {
         rejectListing,
         removeListing,
         resolveReport,
+        updateReportStatus,
         submitReport,
       }}
     >
